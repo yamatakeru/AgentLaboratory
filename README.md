@@ -34,6 +34,7 @@
 
 ### Python venv option
 
+* We recommend using python 3.12
 
 1. **Clone the GitHub Repository**: Begin by cloning the repository using the command:
 ```bash
