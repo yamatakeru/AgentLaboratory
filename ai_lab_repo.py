@@ -84,6 +84,7 @@ class LaboratoryWorkflow:
         self.postdoc = PostdocAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps, openai_api_key=self.openai_api_key)
         self.professor = ProfessorAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps, openai_api_key=self.openai_api_key)
         self.ml_engineer = MLEngineerAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps, openai_api_key=self.openai_api_key)
+        self.sw_engineer = SWEngineerAgent(model=self.model_backbone, notes=self.notes, max_steps=self.max_steps, openai_api_key=self.openai_api_key)
 
         # remove previous files
         remove_figures()
@@ -120,6 +121,7 @@ class LaboratoryWorkflow:
         setattr(self.postdoc, attr, obj)
         setattr(self.professor, attr, obj)
         setattr(self.ml_engineer, attr, obj)
+        setattr(self.sw_engineer, attr, obj)
 
     def reset_agents(self):
         """
@@ -130,6 +132,7 @@ class LaboratoryWorkflow:
         self.postdoc.reset()
         self.professor.reset()
         self.ml_engineer.reset()
+        self.sw_engineer.reset()
 
     def perform_research(self):
         """
@@ -335,7 +338,7 @@ class LaboratoryWorkflow:
         max_tries = self.max_steps
         ml_feedback = str()
         ml_dialogue = str()
-        phd_feedback = str()
+        swe_feedback = str()
         ml_command = str()
         hf_engine = HFDataSearch()
         # iterate until max num tries to complete task is exhausted
@@ -343,21 +346,20 @@ class LaboratoryWorkflow:
             if ml_feedback != "":
                 ml_feedback_in = "Feedback provided to the ML agent: " + ml_feedback
             else: ml_feedback_in = ""
-            resp = self.phd.inference(self.research_topic, "data preparation", feedback=f"{ml_dialogue}\nFeedback from previous command: {phd_feedback}\n{ml_command}{ml_feedback_in}", step=_i)
-            #if self.verbose: print("PhD Student: ", resp, "\n~~~~~~~~~~~")
-            phd_feedback = str()
-            phd_dialogue = str()
+            resp = self.sw_engineer.inference(self.research_topic, "data preparation", feedback=f"{ml_dialogue}\nFeedback from previous command: {swe_feedback}\n{ml_command}{ml_feedback_in}", step=_i)
+            swe_feedback = str()
+            swe_dialogue = str()
             if "```DIALOGUE" in resp:
                 dialogue = extract_prompt(resp, "DIALOGUE")
-                phd_dialogue = f"\nThe following is dialogue produced by the PhD Student: {dialogue}\n"
-                if self.verbose: print("#"*40, f"\nThe following is dialogue produced by the PhD Student: {dialogue}", "\n", "#"*40)
+                swe_dialogue = f"\nThe following is dialogue produced by the SW Engineer: {dialogue}\n"
+                if self.verbose: print("#"*40, f"\nThe following is dialogue produced by the SW Engineer: {dialogue}", "\n", "#"*40)
             if "```SUBMIT_CODE" in resp:
                 final_code = extract_prompt(resp, "SUBMIT_CODE")
                 code_resp = execute_code(final_code, timeout=60)
-                if self.verbose: print("!"*100, "\n", f"CODE RESPONSE: {code_resp}")#print("!"*100, "\n", self.phd.dataset_code, "\n", "$"*100, "\n", final_code, "\n", "!"*100, "\n", f"CODE RESPONSE: {code_resp}")
-                phd_feedback += f"\nCode Response: {code_resp}\n"
+                if self.verbose: print("!"*100, "\n", f"CODE RESPONSE: {code_resp}")
+                swe_feedback += f"\nCode Response: {code_resp}\n"
                 if "[CODE EXECUTION ERROR]" in code_resp:
-                    phd_feedback += "\nERROR: Final code had an error and could not be submitted! You must address and fix this error.\n"
+                    swe_feedback += "\nERROR: Final code had an error and could not be submitted! You must address and fix this error.\n"
                 else:
                     if self.human_in_loop_flag["data preparation"]:
                         retry = self.human_in_loop("data preparation", final_code)
@@ -375,7 +377,7 @@ class LaboratoryWorkflow:
                 ml_feedback_in = ""
             resp = self.ml_engineer.inference(
                 self.research_topic, "data preparation",
-                feedback=f"{phd_dialogue}\n{ml_feedback_in}", step=_i)
+                feedback=f"{swe_dialogue}\n{ml_feedback_in}", step=_i)
             #if self.verbose: print("ML Engineer: ", resp, "\n~~~~~~~~~~~")
             ml_feedback = str()
             ml_dialogue = str()
@@ -532,7 +534,7 @@ def parse_arguments():
     parser.add_argument(
         '--copilot-mode',
         type=str,
-        default="True",
+        default="False",
         help='Enable human interaction mode.'
     )
 
