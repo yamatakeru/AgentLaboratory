@@ -539,6 +539,12 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        '--deepseek-api-key',
+        type=str,
+        help='Provide the DeepSeek API key.'
+    )
+
+    parser.add_argument(
         '--load-existing',
         type=str,
         default="False",
@@ -630,9 +636,15 @@ if __name__ == "__main__":
         raise Exception("args.papersolver_max_steps must be a valid integer!")
 
 
-    api_key = os.getenv('OPENAI_API_KEY') or args.api_key or "your-default-api-key"
-    if not api_key:
-        raise ValueError("API key must be provided via --api-key or the OPENAI_API_KEY environment variable.")
+    api_key = os.getenv('OPENAI_API_KEY') or args.api_key
+    deepseek_api_key = os.getenv('DEEPSEEK_API_KEY') or args.deepseek_api_key
+    if args.api_key is not None and os.getenv('OPENAI_API_KEY') is None:
+        os.environ["OPENAI_API_KEY"] = args.api_key
+    if args.deepseek_api_key is not None and os.getenv('DEEPSEEK_API_KEY') is None:
+        os.environ["DEEPSEEK_API_KEY"] = args.deepseek_api_key
+
+    if not api_key and not deepseek_api_key:
+        raise ValueError("API key must be provided via --api-key / -deepseek-api-key or the OPENAI_API_KEY / DEEPSEEK_API_KEY environment variable.")
 
     ##########################################################
     # Research question that the agents are going to explore #
