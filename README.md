@@ -30,6 +30,14 @@
   <img src="media/AgentLabWF.png" alt="Demonstration of the flow of AgentClinic" style="width: 99%;">
 </p>
 
+
+### 👾 Currently supported models
+
+* **OpenAI**: o1, o1-preview, o1-mini, gpt-4o
+* **DeepSeek**: deepseek-chat (deepseek-v3)
+
+To select a specific llm set the flag `--llm-backend="llm_model"` for example `--llm-backend="gpt-4o"` or `--llm-backend="deepseek-chat"`. Please feel free to add a PR supporting new models according to your need!
+
 ## 🖥️ Installation
 
 ### Python venv option
