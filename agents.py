@@ -263,7 +263,7 @@ class BaseAgent:
         # remove histories that have expiration dates
         for _i in reversed(range(len(self.history))):
             if self.history[_i][0] is not None:
-                self.history[_i] = self.history[_i] = self.history[_i][0] - 1, self.history[_i][1]
+                self.history[_i] = (self.history[_i][0] - 1, self.history[_i][1])
                 if self.history[_i][0] < 0:
                     self.history.pop(_i)
         if len(self.history) >= self.max_hist_len:
