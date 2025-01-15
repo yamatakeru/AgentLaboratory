@@ -1,3 +1,4 @@
+import os
 from agents import *
 from copy import copy
 from common_imports import *
@@ -6,6 +7,7 @@ from torch.backends.mkl import verbose
 
 import argparse
 import pickle
+import yaml
 
 DEFAULT_LLM_BACKBONE = "o1-mini"
 
@@ -527,7 +529,6 @@ class LaboratoryWorkflow:
         return False
 
 
-
 def parse_arguments():
     parser = argparse.ArgumentParser(description="AgentLaboratory Research Workflow")
 
@@ -560,6 +561,7 @@ def parse_arguments():
     parser.add_argument(
         '--research-topic',
         type=str,
+        default=None,
         help='Specify the research topic.'
     )
 
@@ -611,8 +613,29 @@ def parse_arguments():
         help='Total number of paper-solver steps'
     )
 
+    parser.add_argument(
+        '--config-path',
+        type=str,
+        default="config/task_notes.yml",
+        help='Path to the config file'
+    )
 
     return parser.parse_args()
+
+
+def load_task_notes(api_key, config_path) -> tuple[str, list]:
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"The file {config_path} does not exist.")
+
+    with open(config_path, 'r') as file:
+        config = yaml.safe_load(file)
+        research_topic = config['research_topic']
+        task_notes = config['task_notes']
+        # replace api_key in task_notes
+        for note in task_notes:
+            note['note'] = note['note'].format(api_key=api_key)
+
+    return research_topic, task_notes
 
 
 if __name__ == "__main__":
@@ -635,7 +658,6 @@ if __name__ == "__main__":
     except Exception:
         raise Exception("args.papersolver_max_steps must be a valid integer!")
 
-
     api_key = os.getenv('OPENAI_API_KEY') or args.api_key
     deepseek_api_key = os.getenv('DEEPSEEK_API_KEY') or args.deepseek_api_key
     if args.api_key is not None and os.getenv('OPENAI_API_KEY') is None:
@@ -649,33 +671,16 @@ if __name__ == "__main__":
     ##########################################################
     # Research question that the agents are going to explore #
     ##########################################################
-    if human_mode or args.research_topic is None:
+    default_research_topic, task_notes_LLM = load_task_notes(api_key, args.config_path)
+
+    if human_mode or (args.research_topic is None and default_research_topic is None):
         research_topic = input("Please name an experiment idea for AgentLaboratory to perform: ")
-    else:
+    elif args.research_topic is not None:
         research_topic = args.research_topic
-
-    task_notes_LLM = [
-        {"phases": ["plan formulation"],
-         "note": f"You should come up with a plan for TWO experiments."},
-
-        {"phases": ["plan formulation", "data preparation", "running experiments"],
-         "note": "Please use gpt-4o-mini for your experiments."},
-
-        {"phases": ["running experiments"],
-         "note": f'Use the following code to inference gpt-4o-mini: \nfrom openai import OpenAI\nos.environ["OPENAI_API_KEY"] = "{api_key}"\nclient = OpenAI()\ncompletion = client.chat.completions.create(\nmodel="gpt-4o-mini-2024-07-18", messages=messages)\nanswer = completion.choices[0].message.content\n'},
-
-        {"phases": ["running experiments"],
-         "note": f"You have access to only gpt-4o-mini using the OpenAI API, please use the following key {api_key} but do not use too many inferences. Do not use openai.ChatCompletion.create or any openai==0.28 commands. Instead use the provided inference code."},
-
-        {"phases": ["running experiments"],
-         "note": "I would recommend using a small dataset (approximately only 100 data points) to run experiments in order to save time. Do not use much more than this unless you have to or are running the final tests."},
-
-        {"phases": ["data preparation", "running experiments"],
-         "note": "You are running on a MacBook laptop. You can use 'mps' with PyTorch"},
-
-        {"phases": ["data preparation", "running experiments"],
-         "note": "Generate figures with very colorful and artistic design."},
-    ]
+    elif default_research_topic is not None:
+        research_topic = default_research_topic
+    else:
+        raise ValueError("Either --research-topic or research-topic from config file must be provided.")
 
     task_notes_LLM.append(
         {"phases": ["literature review", "plan formulation", "data preparation", "running experiments", "results interpretation", "report writing", "report refinement"],
@@ -728,9 +733,3 @@ if __name__ == "__main__":
         )
 
     lab.perform_research()
-
-
-
-
-
-
