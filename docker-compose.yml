@@ -5,10 +5,9 @@ services:
     volumes:
       - .:/app
     command: >
-      uv run ai_lab_repo.py
-      --api-key $API_KEY
+      python ai_lab_repo.py
+      --deepseek-api-key $API_KEY
       --llm-backend $LLM_BACKEND
       --compile-latex $COMPILE_LATEX
+      --copilot-mode $COPILOT_MODE
       --config-path $CONFIG_PATH
-    ports:
-      - "8000:8000"
